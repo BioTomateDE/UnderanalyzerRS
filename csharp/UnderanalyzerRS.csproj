@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>library</OutputType>
+        <PublishAot>true</PublishAot>
+
+        <OptimizationPreference>Size</OptimizationPreference>
+        <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+
+        <TrimMode>link</TrimMode>
+        <PublishTrimmed>true</PublishTrimmed>
+        <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+
+        <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
+        <EventSourceSupport>false</EventSourceSupport>
+        <UseSystemResourceKeys>true</UseSystemResourceKeys>
+        <IlcDisableReflection>true</IlcDisableReflection>
+
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="UnderminersTeam.Underanalyzer" Version="*" />
+    </ItemGroup>
+</Project>
+
