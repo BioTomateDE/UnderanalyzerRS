@@ -16,8 +16,8 @@ In your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libgm = ...  # whatever version
-underanalyzer = {git = "https://github.com/BioTomateDE/UnderanalyzerRS"}
+libgm = "..."  # whatever version
+underanalyzer = { git = "https://github.com/BioTomateDE/UnderanalyzerRS" }
 ```
 
 In your Rust code:
@@ -38,10 +38,8 @@ when major parts of the data file are changed.
 
 ## Stability
 
-This thing is probably pretty unstable.
-That's why I wanna rewrite Underanalyzer in Rust anyway.
-
-Use at your own risk.
+This interaction between Rust and C# is probably pretty unstable.
+(That's why I wanna rewrite Underanalyzer in Rust anyway.)
 
 ## Licence
 

@@ -7,7 +7,7 @@ use libgm::{
     prelude::*,
 };
 
-use crate::primitives::{RawArray, RustString};
+use crate::primitives::{RawArray, RustStr};
 
 #[repr(u8)]
 enum RawBranch {
@@ -28,19 +28,19 @@ pub struct GameContext<'a> {
     short_curcuit: bool,
     array_cow: bool,
 
-    asset_object_names: RawArray<RustString<'a>>,
-    asset_sprite_names: RawArray<RustString<'a>>,
-    asset_sound_names: RawArray<RustString<'a>>,
-    asset_room_names: RawArray<RustString<'a>>,
-    asset_background_names: RawArray<RustString<'a>>,
-    asset_path_names: RawArray<RustString<'a>>,
-    asset_script_names: RawArray<RustString<'a>>,
-    asset_font_names: RawArray<RustString<'a>>,
-    asset_timeline_names: RawArray<RustString<'a>>,
-    asset_shader_names: RawArray<RustString<'a>>,
-    asset_sequence_names: RawArray<RustString<'a>>,
-    asset_animcurve_names: RawArray<RustString<'a>>,
-    asset_particlesystem_names: RawArray<RustString<'a>>,
+    asset_object_names: RawArray<RustStr<'a>>,
+    asset_sprite_names: RawArray<RustStr<'a>>,
+    asset_sound_names: RawArray<RustStr<'a>>,
+    asset_room_names: RawArray<RustStr<'a>>,
+    asset_background_names: RawArray<RustStr<'a>>,
+    asset_path_names: RawArray<RustStr<'a>>,
+    asset_script_names: RawArray<RustStr<'a>>,
+    asset_font_names: RawArray<RustStr<'a>>,
+    asset_timeline_names: RawArray<RustStr<'a>>,
+    asset_shader_names: RawArray<RustStr<'a>>,
+    asset_sequence_names: RawArray<RustStr<'a>>,
+    asset_animcurve_names: RawArray<RustStr<'a>>,
+    asset_particlesystem_names: RawArray<RustStr<'a>>,
 }
 
 impl<'a> GameContext<'a> {
@@ -115,11 +115,11 @@ fn find_array_cow(data: &GMData) -> bool {
     false
 }
 
-fn get_asset_names(chunk: &impl GMNamedListChunk) -> RawArray<RustString<'_>> {
+fn get_asset_names(chunk: &impl GMNamedListChunk) -> RawArray<RustStr<'_>> {
     let mut vector = Vec::with_capacity(chunk.len());
     for element in chunk.elements() {
         let name: &str = element.name();
-        vector.push(RustString::from_str(name));
+        vector.push(RustStr::from_str(name));
     }
     RawArray::from_vec(vector)
 }

@@ -23,15 +23,6 @@ static class Exports
             CsString outputRaw = CsString.FromManagedString(output);
             return new ReturnValue { str = outputRaw, error = 0 };
         }
-        catch (ThreadAbortException e)
-        {
-            // This exception would get rethrown after the catch block.
-            // Therefore, it needs to kill the program for safety.
-            Console.WriteLine($"[FATAL] ThreadAbortException occurred: {e.Message}");
-            System.Environment.Exit(999);
-            while (true) { }
-            // (apparently this exception got removed? so remove this block later)
-        }
         catch (Exception e)
         {
             CsString message = CsString.FromManagedString(e.ToString());

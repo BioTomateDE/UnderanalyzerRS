@@ -20,6 +20,6 @@ public readonly struct RustString : IGMString
     }
 
     // this can be cached probably
-    // if anyone wants to optimise this, here's a start ig
+    // TODO: if anyone wants to optimise this, here's a start ig
     public string Content => ToManagedString();
 }

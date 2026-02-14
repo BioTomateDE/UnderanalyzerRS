@@ -4,4 +4,4 @@ mod ruststring;
 
 pub use array::RawArray;
 pub use csstring::CsString;
-pub use ruststring::RustString;
+pub use ruststring::RustStr;

@@ -67,12 +67,15 @@ pub fn init_externs() -> libgm::Result<()> {
 
 static EXTERNS: OnceLock<ExternFns> = OnceLock::new();
 
-pub fn decompile_to_string(game_context: *const GameContext, code: *const Code) -> ReturnValue {
+pub unsafe fn decompile_to_string(
+    game_context: *const GameContext,
+    code: *const Code,
+) -> ReturnValue {
     let ext = EXTERNS.get_or_init(force_load_externs);
     (ext.decompile)(game_context, code)
 }
 
-pub fn free_cs_string(ptr: *const u8) {
+pub unsafe fn free_cs_string(ptr: *const u8) {
     let ext = EXTERNS.get_or_init(force_load_externs);
     (ext.free_cs_string)(ptr);
 }

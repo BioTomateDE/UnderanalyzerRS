@@ -2,12 +2,12 @@ use libgm::{gml::GMCode, prelude::*};
 
 use crate::{
     gamemaker::Instruction,
-    primitives::{RawArray, RustString},
+    primitives::{RawArray, RustStr},
 };
 
 #[repr(C)]
 pub struct Code<'a> {
-    name: RustString<'a>,
+    name: RustStr<'a>,
     instructions: RawArray<Instruction<'a>>,
     children: RawArray<Self>,
     length: u32,
@@ -32,7 +32,7 @@ impl<'a> Code<'a> {
             .collect::<Result<_>>()?;
 
         Ok(Self {
-            name: RustString::from_str(&code.name),
+            name: RustStr::from_str(&code.name),
             instructions: RawArray::from_vec(get_instructions(code, data)?),
             children: RawArray::from_vec(children),
             length: get_length(code),

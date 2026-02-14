@@ -177,7 +177,7 @@ public readonly struct GameContext : IGameContext
 
     private string? _GetAssetNameFor(in RawArray<RustString> array, int index)
     {
-        if (index > 0 && (nuint)index < array.Len)
+        if (index >= 0 && (nuint)index < array.Len)
         {
             return array.Get(index).Content;
         }

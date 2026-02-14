@@ -82,7 +82,7 @@ impl<'a> GameContext<'a> {
         let code = &raw const code;
         let ctx = self as *const Self;
 
-        let ret = decompile_to_string(ctx, code);
+        let ret = unsafe { decompile_to_string(ctx, code) };
 
         let string: &str = unsafe { ret.string.to_str() }
             .context("constructing string from return value of Underanalyzer DecompileToString")?;
@@ -91,6 +91,7 @@ impl<'a> GameContext<'a> {
             return Ok(string.to_owned());
         }
 
+        // Error occurred
         let errno: u8 = ret.error;
         let message = if errno == 1 {
             string.to_owned()

@@ -36,6 +36,8 @@ impl Drop for CsString {
     fn drop(&mut self) {
         // In order to drop the CsString properly, it needs to
         // call a Marshal function exported by CSharp.
-        free_cs_string(self.ptr);
+        unsafe {
+            free_cs_string(self.ptr);
+        }
     }
 }

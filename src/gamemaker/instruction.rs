@@ -1,6 +1,6 @@
 use crate::{
     gamemaker::{function::Function, variable::Variable},
-    primitives::RustString,
+    primitives::RustStr,
 };
 
 use libgm::{
@@ -12,7 +12,7 @@ use libgm::{
 pub struct Instruction<'a> {
     variable: Variable<'a>,
     function: Function<'a>,
-    value_string: RustString<'a>,
+    value_string: RustStr<'a>,
     value_double: f64,
     value_long: i64,
     value_int: i32,
@@ -79,14 +79,14 @@ fn extract_function<'a>(instr: &LibGMInstruction, data: &'a GMData) -> Result<Fu
     }
 }
 
-fn extract_string(instr: &LibGMInstruction) -> RustString<'_> {
+fn extract_string(instr: &LibGMInstruction) -> RustStr<'_> {
     if let LibGMInstruction::Push {
         value: PushValue::String(string),
     } = instr
     {
-        RustString::from_str(string)
+        RustStr::from_str(string)
     } else {
-        RustString::EMPTY
+        RustStr::EMPTY
     }
 }
 
