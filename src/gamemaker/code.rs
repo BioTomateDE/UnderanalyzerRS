@@ -25,17 +25,11 @@ impl<'a> Code<'a> {
         let argument_count = modern.arguments_count;
         let local_count = modern.locals_count;
 
-        let children: Vec<GMRef<GMCode>> = find_children(code_ref, data)?;
-        let children: Vec<Self> = children
-            .into_iter()
-            .map(|c| Self::try_from_libgm(c, data))
-            .collect::<Result<_>>()?;
-
         Ok(Self {
             name: RustStr::from_str(&code.name),
             instructions: RawArray::from_vec(get_instructions(code, data)?),
-            children: RawArray::from_vec(children),
-            length: get_length(code),
+            children: RawArray::from_vec(get_children(code_ref, data)?),
+            length: code.length(),
             start_offset,
             argument_count,
             local_count,
@@ -50,29 +44,9 @@ fn get_instructions<'a>(code: &'a GMCode, data: &'a GMData) -> Result<Vec<Instru
         .collect()
 }
 
-fn find_children(code_ref: GMRef<GMCode>, data: &GMData) -> Result<Vec<GMRef<GMCode>>> {
-    // No child code entries before WAD 15
-    if data.general_info.wad_version < 15 {
-        return Ok(Vec::new());
-    }
-
-    let mut children: Vec<GMRef<GMCode>> = Vec::new();
-
-    for (idx, code_entry) in data.codes.iter().enumerate() {
-        let Some(parent) = code_entry.parent() else {
-            continue;
-        };
-        if code_ref == parent {
-            children.push(GMRef::from(idx));
-        }
-    }
-
-    Ok(children)
-}
-
-fn get_length(code: &GMCode) -> u32 {
-    code.instructions
-        .iter()
-        .map(|instr| u32::from(instr.size()))
-        .sum()
+fn get_children<'a>(code_ref: GMRef<GMCode>, data: &'a GMData) -> Result<Vec<Code<'a>>> {
+    GMCode::find_children(code_ref, data)
+        .into_iter()
+        .map(|child_ref| Code::try_from_libgm(child_ref, data))
+        .collect()
 }

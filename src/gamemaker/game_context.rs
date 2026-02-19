@@ -3,7 +3,7 @@ use libgm::{
         elements::general_info::GMGeneralInfo,
         version::{GMVersion, LTSBranch},
     },
-    gml::{Instruction, instruction::DataType},
+    gml::analysis::CodeAnalysis,
     prelude::*,
 };
 
@@ -47,6 +47,7 @@ impl<'a> GameContext<'a> {
     pub(crate) fn try_from_libgm(data: &'a GMData) -> Result<Self> {
         let gen8: &GMGeneralInfo = &data.general_info;
         let ver: &GMVersion = &gen8.version;
+        let analysis: CodeAnalysis = data.analyze_code();
 
         Ok(Self {
             ver_major: ver.major,
@@ -55,8 +56,8 @@ impl<'a> GameContext<'a> {
             ver_build: ver.build,
             wad_version: gen8.wad_version,
             lts_branch: convert_lts_branch(ver.branch),
-            short_curcuit: find_short_curcuit(data),
-            array_cow: find_array_cow(data),
+            short_curcuit: analysis.uses_short_circuit,
+            array_cow: analysis.uses_array_copy_on_write,
             asset_object_names: get_asset_names(&data.game_objects),
             asset_sprite_names: get_asset_names(&data.sprites),
             asset_sound_names: get_asset_names(&data.sounds),
@@ -80,39 +81,6 @@ const fn convert_lts_branch(libgm_branch_type: LTSBranch) -> RawBranch {
         LTSBranch::LTS => RawBranch::LTS2022,
         LTSBranch::PostLTS => RawBranch::Post2022,
     }
-}
-
-fn find_short_curcuit(data: &GMData) -> bool {
-    for code in &data.codes {
-        for instr in &code.instructions {
-            // instructions like and.b.b / or.b.b imply the game was implied without short curcuiting.
-            if matches!(
-                instr,
-                Instruction::And {
-                    lhs: DataType::Boolean,
-                    rhs: DataType::Boolean,
-                } | Instruction::Or {
-                    lhs: DataType::Boolean,
-                    rhs: DataType::Boolean,
-                }
-            ) {
-                return false;
-            }
-        }
-    }
-    true
-}
-
-fn find_array_cow(data: &GMData) -> bool {
-    for code in &data.codes {
-        for instr in &code.instructions {
-            if *instr == Instruction::SetArrayOwner {
-                // If a setowner instruction is found, the game must use array copy on write
-                return true;
-            }
-        }
-    }
-    false
 }
 
 fn get_asset_names(chunk: &impl GMNamedListChunk) -> RawArray<RustStr<'_>> {
