@@ -175,7 +175,7 @@ impl<'a> UaInstruction<'a> {
 }
 
 const fn encode_double_type(type1: DataType, type2: DataType) -> u8 {
-    type1.encode() | type2.encode() >> 4
+    type1.encode() | type2.encode() << 4
 }
 
 const fn encode_variable_ref(code_variable: CodeVariable) -> u32 {
