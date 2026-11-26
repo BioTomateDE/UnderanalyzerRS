@@ -14,9 +14,9 @@ public readonly struct GMCode : IGMCode
     public readonly short ArgumentCount;
     public readonly short LocalCount;
 
-    public int InstructionCount => (int)Instructions.Len;
+    public int InstructionCount => Instructions.Len;
     public IGMCode? Parent => null; // TODO
-    public int ChildCount => (int)Children.Len;
+    public int ChildCount => Children.Len;
     IGMString IGMCode.Name => Name;
     int IGMCode.Length => Length;
     int IGMCode.StartOffset => StartOffset;

@@ -1,181 +1,185 @@
-use crate::{
-    gamemaker::{function::Function, variable::Variable},
-    primitives::RustStr,
-};
+use crate::gamemaker::object::UaObject;
+use crate::primitives::RustStr;
+use libgm::gml::instruction::CodeVariable;
+use libgm::gml::instruction::DataType;
+use libgm::gml::instruction::Instruction;
+use libgm::gml::instruction::PushValue;
+use libgm::prelude::*;
 
-use libgm::{
-    gml::instruction::{Instruction as LibGMInstruction, PushValue},
-    prelude::*,
-};
-
-#[repr(C)]
-pub struct Instruction<'a> {
-    variable: Variable<'a>,
-    function: Function<'a>,
-    value_string: RustStr<'a>,
-    value_double: f64,
-    value_long: i64,
-    value_int: i32,
-    branch_offset: i32,
-    argument_count: i32,
-    asset_reference: i32,
-    value_short: i16,
-    extended_kind: i16,
-    instance_type: i16,
-    opcode: u8,
-    type1: u8,
-    type2: u8,
-    comparison_kind: u8,
-    duplication_size: u8,
-    duplication_size2: u8,
-    variable_type: u8,
-    pop_swap_size: u8,
-    pop_with_context_exit: u8,
+#[repr(u8)]
+enum ObjectKind {
+    None = 0,
+    String = 1,
+    Variable = 2,
+    Function = 3,
 }
 
-impl<'a> Instruction<'a> {
-    pub fn try_from_libgm(instr: &'a LibGMInstruction, data: &'a GMData) -> Result<Self> {
+#[repr(C)]
+pub struct UaInstruction<'a> {
+    /// Push value (int/long/double)
+    primitive: u64,
+    /// Reference to variable OR function OR string
+    object: UaObject<'a>,
+    /// Some extra value(s)
+    immediate: u32,
+    /// Data types
+    types: u8,
+    opcode: u8,
+    object_kind: ObjectKind,
+}
+
+impl<'a> UaInstruction<'a> {
+    #[allow(clippy::too_many_lines)]
+    pub fn try_from_libgm(instr: &'a Instruction, data: &'a GMData) -> Result<Self> {
+        let opcode: u8 = instr.opcode();
+        let mut immediate: u32 = 0;
+        let mut primitive = 0;
+        let mut object = UaObject::NULL;
+        let mut object_kind = ObjectKind::None;
+        let mut types: u8 = 0xFF;
+
+        match *instr {
+            Instruction::Binary { op: _, lhs, rhs } => {
+                types = encode_double_type(rhs, lhs);
+            }
+            Instruction::Convert { from, to } => {
+                types = encode_double_type(from, to);
+            }
+            Instruction::Negate { data_type }
+            | Instruction::Not { data_type }
+            | Instruction::PopDiscard { data_type } => {
+                types = data_type.encode();
+            }
+            Instruction::Compare {
+                lhs,
+                rhs,
+                comparison_type,
+            } => {
+                types = encode_double_type(rhs, lhs);
+                immediate = comparison_type.as_u8() as u32;
+            }
+            Instruction::Pop {
+                variable: code_variable,
+                type1,
+                type2,
+            } => {
+                types = encode_double_type(type1, type2);
+                immediate = encode_variable_ref(code_variable);
+                let var = data.variables.by_ref(code_variable.variable)?;
+                object = UaObject::try_from_libgm(var, &data.strings)?;
+                object_kind = ObjectKind::Variable;
+            }
+            Instruction::PopSwap { is_array } => {
+                types = encode_double_type(DataType::Short, DataType::Variable);
+                immediate = if is_array { 6 } else { 5 };
+            }
+            Instruction::Duplicate { data_type, count } => {
+                immediate = count as u32;
+                types = data_type.encode();
+            }
+            Instruction::DuplicateSwap {
+                data_type,
+                size1,
+                size2,
+            } => {
+                immediate = size1 as u32 | (size2 as u32) << 8;
+                types = data_type.encode();
+            }
+            Instruction::Exit => {
+                types = DataType::Int.encode();
+            }
+            Instruction::Return => {
+                types = DataType::Variable.encode();
+            }
+            Instruction::Branch { jump_offset }
+            | Instruction::BranchIf { jump_offset }
+            | Instruction::BranchUnless { jump_offset }
+            | Instruction::PushWithContext { jump_offset }
+            | Instruction::PopWithContext { jump_offset } => {
+                immediate = jump_offset as u32;
+            }
+            Instruction::PopWithContextExit => {
+                immediate = 0xF << 20;
+            }
+            Instruction::Push { value } => {
+                types = value.data_type().encode();
+                match value {
+                    PushValue::Short(short) => immediate = short as u32,
+                    PushValue::Int(int) => primitive = int as u64,
+                    PushValue::Long(long) => primitive = long as u64,
+                    PushValue::Double(double) => primitive = double.to_bits(),
+                    PushValue::Bool(bool) => primitive = bool as u64,
+                    PushValue::String(string_ref) => {
+                        object.name = RustStr::try_from_libgm(string_ref, &data.strings)?;
+                        object_kind = ObjectKind::String;
+                    }
+                    PushValue::Variable(code_variable) => {
+                        immediate = encode_variable_ref(code_variable);
+                        let var = data.variables.by_ref(code_variable.variable)?;
+                        object = UaObject::try_from_libgm(var, &data.strings)?;
+                        object_kind = ObjectKind::Variable;
+                    }
+                    PushValue::Function(func_ref) => {
+                        let func = data.functions.by_ref(func_ref)?;
+                        object.name = RustStr::try_from_libgm(func.name, &data.strings)?;
+                        object_kind = ObjectKind::Function;
+                    }
+                }
+            }
+            Instruction::PushLocal { variable: v }
+            | Instruction::PushGlobal { variable: v }
+            | Instruction::PushBuiltin { variable: v } => {
+                immediate = encode_variable_ref(v);
+                let var = data.variables.by_ref(v.variable)?;
+                object = UaObject::try_from_libgm(var, &data.strings)?;
+                object_kind = ObjectKind::Variable;
+            }
+            Instruction::PushImmediate { integer } => immediate = integer as u32,
+            Instruction::Call { function, arg_count } => {
+                types = DataType::Int.encode();
+                immediate = arg_count as u32;
+                let func = data.functions.by_ref(function)?;
+                object.name = RustStr::try_from_libgm(func.name, &data.strings)?;
+                object_kind = ObjectKind::Function;
+            }
+            Instruction::CallVariable { arg_count } => {
+                types = DataType::Variable.encode();
+                immediate = arg_count as u32;
+            }
+            Instruction::CheckArrayIndex
+            | Instruction::PushArrayFinal
+            | Instruction::PopArrayFinal
+            | Instruction::PushArrayContainer
+            | Instruction::SetArrayOwner
+            | Instruction::HasStaticInitialized
+            | Instruction::SetStaticInitialized
+            | Instruction::SaveArrayReference
+            | Instruction::RestoreArrayReference
+            | Instruction::IsNullishValue => {
+                immediate = instr.extended_kind().unwrap() as u32;
+            }
+            Instruction::PushReference { asset_reference } => {
+                primitive = asset_reference.encode_old() as u64;
+            }
+        }
+
         Ok(Self {
-            variable: extract_variable(instr, data)?,
-            function: extract_function(instr, data)?,
-            value_string: extract_string(instr),
-            value_double: extract_double(instr),
-            value_long: extract_long(instr),
-            value_int: extract_int(instr),
-            branch_offset: 4 * instr.jump_offset().unwrap_or(0),
-            argument_count: extract_argument_count(instr),
-            asset_reference: extract_asset_reference(instr),
-            value_short: extract_short(instr),
-            extended_kind: instr.extended_kind().unwrap_or(0),
-            instance_type: instr.variable().map_or(0, |v| v.instance_type.build()),
-            opcode: instr.opcode(),
-            type1: instr.type1().map_or(0, u8::from),
-            type2: instr.type2().map_or(0, u8::from),
-            comparison_kind: extract_comparison_kind(instr),
-            duplication_size: extract_dupsize(instr),
-            duplication_size2: extract_dupsize2(instr),
-            variable_type: instr.variable().map_or(0, |v| u8::from(v.variable_type)),
-            pop_swap_size: extract_popswap_size(instr),
-            pop_with_context_exit: u8::from(*instr == LibGMInstruction::PopWithContextExit),
+            primitive,
+            object,
+            immediate,
+            types,
+            opcode,
+            object_kind,
         })
     }
 }
 
-fn extract_variable<'a>(instr: &LibGMInstruction, data: &'a GMData) -> Result<Variable<'a>> {
-    if let Some(code_var) = instr.variable() {
-        let variable = data.variables.by_ref(code_var.variable)?;
-        Ok(Variable::from_libgm(variable))
-    } else {
-        Ok(Variable::NULL)
-    }
+const fn encode_double_type(type1: DataType, type2: DataType) -> u8 {
+    type1.encode() | type2.encode() >> 4
 }
 
-fn extract_function<'a>(instr: &LibGMInstruction, data: &'a GMData) -> Result<Function<'a>> {
-    if let Some(func_ref) = instr.function() {
-        let function = data.functions.by_ref(func_ref)?;
-        Ok(Function::from_libgm(function))
-    } else {
-        Ok(Function::NULL)
-    }
-}
-
-fn extract_string(instr: &LibGMInstruction) -> RustStr<'_> {
-    if let LibGMInstruction::Push {
-        value: PushValue::String(string),
-    } = instr
-    {
-        RustStr::from_str(string)
-    } else {
-        RustStr::EMPTY
-    }
-}
-
-const fn extract_double(instr: &LibGMInstruction) -> f64 {
-    if let LibGMInstruction::Push {
-        value: PushValue::Double(double),
-    } = instr
-    {
-        *double
-    } else {
-        0.0
-    }
-}
-
-const fn extract_long(instr: &LibGMInstruction) -> i64 {
-    if let LibGMInstruction::Push {
-        value: PushValue::Int64(long),
-    } = instr
-    {
-        *long
-    } else {
-        0
-    }
-}
-
-const fn extract_int(instr: &LibGMInstruction) -> i32 {
-    if let LibGMInstruction::Push {
-        value: PushValue::Int32(int),
-    } = instr
-    {
-        *int
-    } else {
-        0
-    }
-}
-
-const fn extract_short(instr: &LibGMInstruction) -> i16 {
-    match instr {
-        LibGMInstruction::Push {
-            value: PushValue::Int16(integer),
-        }
-        | LibGMInstruction::PushImmediate { integer } => *integer,
-        _ => 0,
-    }
-}
-
-fn extract_argument_count(instr: &LibGMInstruction) -> i32 {
-    match *instr {
-        LibGMInstruction::Call { argument_count, .. }
-        | LibGMInstruction::CallVariable { argument_count } => i32::from(argument_count),
-        _ => 0,
-    }
-}
-
-const fn extract_asset_reference(instr: &LibGMInstruction) -> i32 {
-    match instr {
-        LibGMInstruction::PushReference { asset_reference } => asset_reference.build() as i32,
-        _ => 0,
-    }
-}
-
-fn extract_comparison_kind(instr: &LibGMInstruction) -> u8 {
-    match instr {
-        LibGMInstruction::Compare {
-            comparison_type, ..
-        } => u8::from(*comparison_type),
-        _ => 0,
-    }
-}
-
-const fn extract_dupsize(instr: &LibGMInstruction) -> u8 {
-    match *instr {
-        LibGMInstruction::Duplicate { size, .. }
-        | LibGMInstruction::DuplicateSwap { size1: size, .. } => size,
-        _ => 0,
-    }
-}
-
-const fn extract_dupsize2(instr: &LibGMInstruction) -> u8 {
-    match *instr {
-        LibGMInstruction::DuplicateSwap { size2, .. } => size2,
-        _ => 0,
-    }
-}
-
-const fn extract_popswap_size(instr: &LibGMInstruction) -> u8 {
-    match *instr {
-        LibGMInstruction::PopSwap { is_array: false } => 5,
-        LibGMInstruction::PopSwap { is_array: true } => 6,
-        _ => 0,
-    }
+const fn encode_variable_ref(code_variable: CodeVariable) -> u32 {
+    let inst = code_variable.instance_type.encode(code_variable.ref_type);
+    let reftype = code_variable.ref_type.encode();
+    inst as u32 | (reftype as u32) << 16
 }

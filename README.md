@@ -16,19 +16,19 @@ In your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libgm = "..."  # whatever version
+libgm = "0.8"
 underanalyzer = { git = "https://github.com/BioTomateDE/UnderanalyzerRS" }
 ```
 
 In your Rust code:
 
 ```rust
-let data: GMData = libgm::parse_file("./data.win")?;
-let ctx = GameContext::new(&data)?;
+let data: GMData = libgm::wad::load_file("./data.win")?;
+let ctx = underanalyzer::GameContext::new(&data)?;
 // This operation may take a few hundred milliseconds.
 // You should therefore reuse this `GameContext` whenever possible.
 
-let code: GMRef<GMCode> = data.codes.ref_by_name("gml_Script_attention_hackerz_no2")?;
+let code: GMRef<Code> = data.codes.ref_by_name("gml_Script_attention_hackerz_no2")?;
 let output: String = ctx.decompile(code, &data)?;
 println!("{output}");
 ```

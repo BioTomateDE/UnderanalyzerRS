@@ -1,18 +1,27 @@
 [package]
 name = "underanalyzer"
 version = "0.0.0"
-authors = ["BioTomateDE"]
+authors = ["BioTomateDE <rust@biotomate.dev>"]
 edition = "2024"
 description = "Rust bindings for the C# library Underanalyzer (GameMaker Language decompilation)"
 readme = "README.md"
 repository = "https://github.com/BioTomateDE/UnderanalyzerRS"
-license = "GPL-3.0"
+license = "GPL-3.0-only"
 keywords = ["gamemaker", "gml", "decompilation", "csharp", "bindings"]
 categories = ["api-bindings"]
 
-[dependencies]
-libloading = "0.9.0"
-tempfile = "3.25.0"
+[lints.rust]
+unused_results = "warn"
 
-[dependencies.libgm]
-version = "*"
+[lints.clippy]
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+cast_sign_loss = "allow"
+cast_possible_truncation = "allow"
+cast_lossless = "allow"
+doc_markdown = "allow"
+
+[dependencies]
+libgm = "0.8"
+libloading = "0.9"
+tempfile = "3.27"

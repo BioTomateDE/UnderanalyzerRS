@@ -1,29 +1,22 @@
-use libgm::{
-    gamemaker::{
-        elements::general_info::GMGeneralInfo,
-        version::{GMVersion, LTSBranch},
-    },
-    gml::analysis::CodeAnalysis,
-    prelude::*,
-};
+use std::any::type_name;
 
-use crate::primitives::{RawArray, RustStr};
-
-#[repr(u8)]
-enum RawBranch {
-    Pre2022 = 1,
-    LTS2022 = 2,
-    Post2022 = 3,
-}
+use crate::gamemaker::version::LtsBranch;
+use crate::gamemaker::version::UaVersion;
+use crate::gamemaker::version::convert_lts_branch;
+use crate::gamemaker::version::convert_version;
+use crate::primitives::RawArray;
+use crate::primitives::RustStr;
+use libgm::gml::analysis::CodeAnalysis;
+use libgm::gml::analysis::analyze;
+use libgm::prelude::*;
+use libgm::wad::elem::string::Strings;
 
 #[repr(C)]
 pub struct GameContext<'a> {
-    ver_major: u32,
-    ver_minor: u32,
-    ver_release: u32,
-    ver_build: u32,
+    // TODO: this *could* just become the enum.
+    version: UaVersion,
     wad_version: u8,
-    lts_branch: RawBranch,
+    lts_branch: LtsBranch,
 
     short_curcuit: bool,
     array_cow: bool,
@@ -45,49 +38,43 @@ pub struct GameContext<'a> {
 
 impl<'a> GameContext<'a> {
     pub(crate) fn try_from_libgm(data: &'a GMData) -> Result<Self> {
-        let gen8: &GMGeneralInfo = &data.general_info;
-        let ver: &GMVersion = &gen8.version;
-        let analysis: CodeAnalysis = data.analyze_code();
+        let version: UaVersion = convert_version(data.meta.version, data.general_info.ide_version)
+            .ctx("converting GMVersion enum to classic 4-part struct")?;
+        let lts_branch: LtsBranch = convert_lts_branch(data.meta.version);
+        let analysis: CodeAnalysis = analyze(data);
+        let s = &data.strings;
 
         Ok(Self {
-            ver_major: ver.major,
-            ver_minor: ver.major,
-            ver_release: ver.release,
-            ver_build: ver.build,
-            wad_version: gen8.wad_version,
-            lts_branch: convert_lts_branch(ver.branch),
-            short_curcuit: analysis.uses_short_circuit,
-            array_cow: analysis.uses_array_copy_on_write,
-            asset_object_names: get_asset_names(&data.game_objects),
-            asset_sprite_names: get_asset_names(&data.sprites),
-            asset_sound_names: get_asset_names(&data.sounds),
-            asset_room_names: get_asset_names(&data.rooms),
-            asset_background_names: get_asset_names(&data.backgrounds),
-            asset_path_names: get_asset_names(&data.paths),
-            asset_script_names: get_asset_names(&data.scripts),
-            asset_font_names: get_asset_names(&data.fonts),
-            asset_timeline_names: get_asset_names(&data.timelines),
-            asset_shader_names: get_asset_names(&data.shaders),
-            asset_sequence_names: get_asset_names(&data.sequences),
-            asset_animcurve_names: get_asset_names(&data.animation_curves),
-            asset_particlesystem_names: get_asset_names(&data.particle_systems),
+            version,
+            wad_version: data.general_info.wad_version,
+            lts_branch,
+            short_curcuit: analysis.short_circuit,
+            array_cow: analysis.array_cow,
+            asset_object_names: get_asset_names(&data.game_objects, s)?,
+            asset_sprite_names: get_asset_names(&data.sprites, s)?,
+            asset_sound_names: get_asset_names(&data.sounds, s)?,
+            asset_room_names: get_asset_names(&data.rooms, s)?,
+            asset_background_names: get_asset_names(&data.tilesets, s)?,
+            asset_path_names: get_asset_names(&data.paths, s)?,
+            asset_script_names: get_asset_names(&data.scripts, s)?,
+            asset_font_names: get_asset_names(&data.fonts, s)?,
+            asset_timeline_names: get_asset_names(&data.timelines, s)?,
+            asset_shader_names: get_asset_names(&data.shaders, s)?,
+            asset_sequence_names: get_asset_names(&data.sequences, s)?,
+            asset_animcurve_names: get_asset_names(&data.animation_curves, s)?,
+            asset_particlesystem_names: get_asset_names(&data.particle_systems, s)?,
         })
     }
 }
 
-const fn convert_lts_branch(libgm_branch_type: LTSBranch) -> RawBranch {
-    match libgm_branch_type {
-        LTSBranch::PreLTS => RawBranch::Pre2022,
-        LTSBranch::LTS => RawBranch::LTS2022,
-        LTSBranch::PostLTS => RawBranch::Post2022,
+fn get_asset_names<'a, C: GMAssetListChunk>(chunk: &C, strings: &'a Strings) -> Result<RawArray<RustStr<'a>>> {
+    let mut slice: Box<[RustStr]> = std::iter::repeat_with(|| RustStr::EMPTY).take(chunk.len()).collect();
+    for (gmref, element) in chunk.element_refs() {
+        let idx: usize = gmref.index().unwrap();
+        let name: &str = element
+            .name(strings)
+            .ctx(|| format!("getting name of {} (chunk {})", type_name::<C::Element>(), C::NAME))?;
+        slice[idx] = RustStr::from_str(name);
     }
-}
-
-fn get_asset_names(chunk: &impl GMNamedListChunk) -> RawArray<RustStr<'_>> {
-    let mut vector = Vec::with_capacity(chunk.len());
-    for element in chunk.elements() {
-        let name: &str = element.name();
-        vector.push(RustStr::from_str(name));
-    }
-    RawArray::from_vec(vector)
+    Ok(RawArray::from_boxed_slice(slice))
 }

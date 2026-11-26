@@ -1,8 +1,9 @@
-use std::{io::Write, sync::OnceLock};
-
+use crate::GameContext;
+use crate::gamemaker::UaCode;
+use crate::primitives::CsString;
+use std::io::Write;
+use std::sync::OnceLock;
 use tempfile::NamedTempFile;
-
-use crate::{GameContext, gamemaker::Code, primitives::CsString};
 
 // FFI definitions ------>
 #[repr(C)]
@@ -11,7 +12,7 @@ pub struct ReturnValue {
     pub error: u8,
 }
 
-type DecompileFn = extern "C" fn(*const GameContext, *const Code) -> ReturnValue;
+type DecompileFn = extern "C" fn(*const GameContext, *const UaCode) -> ReturnValue;
 type FreeCsStringFn = extern "C" fn(*const u8);
 // <------- FFI definitions
 
@@ -24,8 +25,8 @@ struct ExternFns {
 }
 
 fn load_externs() -> Result<ExternFns, String> {
-    let mut file = NamedTempFile::new()
-        .map_err(|e| format!("Could not create temporary file for dynamic library: {e}"))?;
+    let mut file =
+        NamedTempFile::new().map_err(|e| format!("Could not create temporary file for dynamic library: {e}"))?;
     file.write_all(DYN_LIB_DATA)
         .map_err(|e| format!("Could not write data to dynamic library tempfile: {e}"))?;
 
@@ -60,22 +61,19 @@ pub fn init_externs() -> libgm::Result<()> {
     if EXTERNS.get().is_some() {
         return Ok(());
     }
-    let ext = load_externs().context("loading dynamic library")?;
+    let ext = load_externs().ctx("loading dynamic library")?;
     let _ = EXTERNS.set(ext);
     Ok(())
 }
 
 static EXTERNS: OnceLock<ExternFns> = OnceLock::new();
 
-pub unsafe fn decompile_to_string(
-    game_context: *const GameContext,
-    code: *const Code,
-) -> ReturnValue {
+pub unsafe fn decompile_to_string(game_context: *const GameContext, code: *const UaCode) -> ReturnValue {
     let ext = EXTERNS.get_or_init(force_load_externs);
     (ext.decompile)(game_context, code)
 }
 
-pub unsafe fn free_cs_string(ptr: *const u8) {
+pub unsafe fn free_cs_string(ptr: *mut u8) {
     let ext = EXTERNS.get_or_init(force_load_externs);
     (ext.free_cs_string)(ptr);
 }

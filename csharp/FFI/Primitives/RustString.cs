@@ -8,15 +8,14 @@ namespace FFI;
 public readonly struct RustString : IGMString
 {
     private readonly IntPtr Ptr;
-    private readonly nuint Len;
+    private readonly int Len;
 
     public bool Exists => Len != 0;
 
     public unsafe string ToManagedString()
     {
         byte* ptr = (byte*)Ptr.ToPointer();
-        int length = checked((int)Len);
-        return UTF8.GetString(ptr, length);
+        return UTF8.GetString(ptr, Len);
     }
 
     // this can be cached probably

@@ -14,23 +14,23 @@ public enum LTSBranch : byte
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public struct GMVersion
+public readonly struct GMVersion
 {
     public readonly uint Major;
     public readonly uint Minor;
     public readonly uint Release;
     public readonly uint Build;
 
-    public bool AtLeast(uint major, uint minor = 0, uint release = 0, uint build = 0)
+    public readonly bool AtLeast(uint major, uint minor = 0, uint release = 0, uint build = 0)
     {
         if (Major != major)
-            return (Major > major);
+            return Major > major;
         if (Minor != minor)
-            return (Minor > minor);
+            return Minor > minor;
         if (Release != release)
-            return (Release > release);
+            return Release > release;
         if (Build != build)
-            return (Build > build);
+            return Build > build;
         return true;
     }
 }
@@ -64,21 +64,12 @@ public readonly struct GameContext : IGameContext
         return Ver.AtLeast(major, minor, release, build);
     }
 
-    bool IsVerNonLTS(uint major, uint minor = 0, uint release = 0, uint build = 0)
+    bool IsVerNonLTS(uint major, uint minor = 0, uint release = 0, uint build = 0) => Branch switch
     {
-        switch (Branch)
-        {
-            case LTSBranch.Post2022:
-                return IsVer(major, minor, release, build);
-            case LTSBranch.Pre2022:
-            case LTSBranch.LTS2022:
-                return false;
-            default:
-                throw new ArgumentOutOfRangeException(
-                    "Expeed LTS Branch to be 1, 2 or 3; got {Branch}"
-                );
-        }
-    }
+        LTSBranch.Post2022 => IsVer(major, minor, release, build),
+        LTSBranch.Pre2022 or LTSBranch.LTS2022 => false,
+        _ => throw new ArgumentOutOfRangeException("Expected LTS Branch to be 1, 2 or 3; got {Branch}"),
+    };
 
     public bool UsingGMS2OrLater => IsVer(2);
     public bool UsingGMLv2 => IsVer(2, 3);
@@ -110,7 +101,7 @@ public readonly struct GameContext : IGameContext
 
     public GameSpecificRegistry GameSpecificRegistry => new();
 
-    public IBuiltins Builtins => new BuiltinList(Ver);
+    public IBuiltins Builtins => new BuiltinList(Ver, WadVersion);
     public ICodeBuilder CodeBuilder => throw new NotImplementedException("CodeBuilder");
 
     public bool GetAssetId(string assetName, out int assetId)
@@ -125,31 +116,31 @@ public readonly struct GameContext : IGameContext
         switch (assetType)
         {
             case AssetType.Object:
-                return _GetAssetNameFor(in AssetObjectNames, assetIndex);
+                return GetAssetNameFor(in AssetObjectNames, assetIndex);
             case AssetType.Sprite:
-                return _GetAssetNameFor(in AssetSpriteNames, assetIndex);
+                return GetAssetNameFor(in AssetSpriteNames, assetIndex);
             case AssetType.Sound:
-                return _GetAssetNameFor(in AssetSoundNames, assetIndex);
+                return GetAssetNameFor(in AssetSoundNames, assetIndex);
             case AssetType.Room:
-                return _GetAssetNameFor(in AssetRoomNames, assetIndex);
+                return GetAssetNameFor(in AssetRoomNames, assetIndex);
             case AssetType.Background:
-                return _GetAssetNameFor(in AssetBackgroundNames, assetIndex);
+                return GetAssetNameFor(in AssetBackgroundNames, assetIndex);
             case AssetType.Path:
-                return _GetAssetNameFor(in AssetPathNames, assetIndex);
+                return GetAssetNameFor(in AssetPathNames, assetIndex);
             case AssetType.Script:
-                return _GetAssetNameFor(in AssetScriptNames, assetIndex);
+                return GetAssetNameFor(in AssetScriptNames, assetIndex);
             case AssetType.Font:
-                return _GetAssetNameFor(in AssetFontNames, assetIndex);
+                return GetAssetNameFor(in AssetFontNames, assetIndex);
             case AssetType.Timeline:
-                return _GetAssetNameFor(in AssetTimelineNames, assetIndex);
+                return GetAssetNameFor(in AssetTimelineNames, assetIndex);
             case AssetType.Shader:
-                return _GetAssetNameFor(in AssetShaderNames, assetIndex);
+                return GetAssetNameFor(in AssetShaderNames, assetIndex);
             case AssetType.Sequence:
-                return _GetAssetNameFor(in AssetSequenceNames, assetIndex);
+                return GetAssetNameFor(in AssetSequenceNames, assetIndex);
             case AssetType.AnimCurve:
-                return _GetAssetNameFor(in AssetAnimCurveNames, assetIndex);
+                return GetAssetNameFor(in AssetAnimCurveNames, assetIndex);
             case AssetType.ParticleSystem:
-                return _GetAssetNameFor(in AssetParticleSystemNames, assetIndex);
+                return GetAssetNameFor(in AssetParticleSystemNames, assetIndex);
             case AssetType.RoomInstance:
                 if (assetIndex < 100_000)
                 {
@@ -175,9 +166,9 @@ public readonly struct GameContext : IGameContext
         throw new NotImplementedException("GetScriptIdByFunctionName");
     }
 
-    private string? _GetAssetNameFor(in RawArray<RustString> array, int index)
+    private string? GetAssetNameFor(in RawArray<RustString> array, int index)
     {
-        if (index >= 0 && (nuint)index < array.Len)
+        if (index >= 0 && index < array.Len)
         {
             return array.Get(index).Content;
         }

@@ -1,11 +1,10 @@
-use std::{
-    env,
-    error::Error,
-    ffi::OsStr,
-    fs,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::env;
+use std::error::Error;
+use std::ffi::OsStr;
+use std::fs;
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::Command;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -43,7 +42,7 @@ fn find_lib(out_dir: &Path) -> Result<PathBuf> {
     let dir = std::fs::read_dir(out_dir)?;
     for entry in dir {
         let path = entry?.path();
-        println!("Found {path:?}");
+        println!("Found {}", path.display());
         let Some(ext) = path.extension().and_then(OsStr::to_str) else {
             continue;
         };
@@ -61,6 +60,7 @@ fn find_lib(out_dir: &Path) -> Result<PathBuf> {
 }
 
 fn get_runtime() -> Result<&'static str> {
+    // TODO: use cargo env vars
     let rt = if cfg!(target_os = "windows") {
         if cfg!(target_arch = "x86") {
             "win-x86"

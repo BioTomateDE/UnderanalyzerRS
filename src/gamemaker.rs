@@ -1,9 +1,9 @@
 mod code;
-mod function;
 mod game_context;
 mod instruction;
-mod variable;
+mod object;
+mod version;
 
-pub use code::Code;
+pub use code::UaCode;
 pub use game_context::GameContext;
-pub use instruction::Instruction;
+pub use instruction::UaInstruction;

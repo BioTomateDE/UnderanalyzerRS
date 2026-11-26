@@ -1,32 +1,26 @@
 #[repr(C)]
 pub struct RawArray<T> {
-    ptr: *const T,
-    len: usize,
-    cap: usize,
+    ptr: *mut T,
+    len: u32,
 }
 
 impl<T> RawArray<T> {
     #[must_use]
-    pub const fn from_vec(vector: Vec<T>) -> Self {
-        const { assert!(size_of::<T>() != 0, "ZSTs are not supported") }
-
-        let ptr: *const T = vector.as_ptr();
-        let len: usize = vector.len();
-        let cap: usize = vector.capacity();
-
-        // Leak the vector so that it doesn't drop immediately
-        std::mem::forget(vector);
-
-        Self { ptr, len, cap }
+    pub fn from_boxed_slice(boxed_slice: Box<[T]>) -> Self {
+        const { assert!(size_of::<T>() > 0, "ZSTs are not supported") }
+        let len = u32::try_from(boxed_slice.len()).expect("Extremely massive slice");
+        let ptr = Box::into_raw(boxed_slice).cast();
+        Self { ptr, len }
     }
 }
 
 impl<T> Drop for RawArray<T> {
     fn drop(&mut self) {
-        let ptr: *mut T = self.ptr.cast_mut();
-        let len: usize = self.len;
-        let cap: usize = self.cap;
-        drop(unsafe { Vec::from_raw_parts(ptr, len, cap) });
+        let Self { ptr, len } = *self;
+        // TODO: is this sound?
+        let slice: &mut [T] = unsafe { core::slice::from_raw_parts_mut(ptr, len as usize) };
+        let boxed_slice: Box<[T]> = unsafe { Box::from_raw(slice) };
+        drop(boxed_slice);
     }
 }
 

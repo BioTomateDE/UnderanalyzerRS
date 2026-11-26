@@ -1,12 +1,10 @@
-use core::slice;
-
-use libgm::error::Context;
-
 use crate::dynlib::free_cs_string;
+use core::slice;
+use libgm::error::ContextAny;
 
 #[repr(C)]
 pub struct CsString {
-    ptr: *const u8,
+    ptr: *mut u8,
     len: usize,
 }
 
@@ -24,11 +22,7 @@ impl CsString {
     /// * The buffer must have been allocated by CSharp's Marshal.
     pub unsafe fn to_str(&self) -> libgm::Result<&str> {
         let slice: &[u8] = unsafe { slice::from_raw_parts(self.ptr, self.len) };
-        let string: &str = str::from_utf8(slice)
-            .map_err(|e| e.to_string())
-            .context("validating UTF-8")?;
-
-        Ok(string)
+        str::from_utf8(slice).ctx_any("validating UTF-8")
     }
 }
 
