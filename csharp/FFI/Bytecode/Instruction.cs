@@ -20,14 +20,14 @@ public readonly struct GMInstruction : IGMInstruction
 
     Opcode IGMInstruction.Kind => checked((Opcode)OpcodeKind);
     ExtendedOpcode IGMInstruction.ExtKind => checked((ExtendedOpcode)Immediate);
-    ComparisonType IGMInstruction.ComparisonKind => checked((ComparisonType)Immediate);
+    ComparisonType IGMInstruction.ComparisonKind => (ComparisonType)Immediate;
     DataType IGMInstruction.Type1 => checked((DataType)(Types & 0xF));
     DataType IGMInstruction.Type2 => checked((DataType)(Types >> 4));
-    InstanceType IGMInstruction.InstType => checked((InstanceType)(Immediate & 0xFF_FF));
+    InstanceType IGMInstruction.InstType => (InstanceType)(Immediate & 0xFF_FF);
     IGMString? IGMInstruction.ValueString => ObjectKind == 1 ? Object : null;
     IGMVariable? IGMInstruction.ResolvedVariable => ObjectKind == 2 ? Object : null;
     IGMFunction? IGMInstruction.ResolvedFunction => ObjectKind == 3 ? Object : null;
-    VariableType IGMInstruction.ReferenceVarType => checked((VariableType)(Immediate >> 16));
+    VariableType IGMInstruction.ReferenceVarType => (VariableType)(Immediate >> 16);
     double IGMInstruction.ValueDouble => BitConverter.Int64BitsToDouble(Primitive);
     short IGMInstruction.ValueShort => (short)Primitive;
     int IGMInstruction.ValueInt => (int)Primitive;

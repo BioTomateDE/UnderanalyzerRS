@@ -17,6 +17,8 @@ static class Exports
     {
         try
         {
+            Console.WriteLine();
+            Console.WriteLine(Assembly.Disassembler.Disassemble(*code));
             DecompileSettings settings = new();
             DecompileContext decompileContext = new(*gameContext, *code, settings);
             string output = decompileContext.DecompileToString();
