@@ -96,7 +96,7 @@ impl<'a> UaInstruction<'a> {
             | Instruction::BranchUnless { jump_offset }
             | Instruction::PushWithContext { jump_offset }
             | Instruction::PopWithContext { jump_offset } => {
-                immediate = 4 * jump_offset as u32;
+                immediate = jump_offset as u32;
             }
             Instruction::PopWithContextExit => {
                 immediate = 0xF << 20;
@@ -181,5 +181,5 @@ const fn encode_double_type(type1: DataType, type2: DataType) -> u8 {
 const fn encode_variable_ref(code_variable: CodeVariable) -> u32 {
     let inst = code_variable.instance_type.encode(code_variable.ref_type);
     let reftype = code_variable.ref_type.encode();
-    inst as u32 | (reftype as u32) << 16
+    (inst as u32 & 0xFFFF) | (reftype as u32) << 16
 }

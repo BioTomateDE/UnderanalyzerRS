@@ -19,7 +19,7 @@ public readonly struct GMInstruction : IGMInstruction
     readonly byte ObjectKind;
 
     Opcode IGMInstruction.Kind => checked((Opcode)OpcodeKind);
-    ExtendedOpcode IGMInstruction.ExtKind => checked((ExtendedOpcode)Immediate);
+    ExtendedOpcode IGMInstruction.ExtKind => (ExtendedOpcode)Immediate;
     ComparisonType IGMInstruction.ComparisonKind => (ComparisonType)Immediate;
     DataType IGMInstruction.Type1 => checked((DataType)(Types & 0xF));
     DataType IGMInstruction.Type2 => checked((DataType)(Types >> 4));
@@ -27,7 +27,7 @@ public readonly struct GMInstruction : IGMInstruction
     IGMString? IGMInstruction.ValueString => ObjectKind == 1 ? Object : null;
     IGMVariable? IGMInstruction.ResolvedVariable => ObjectKind == 2 ? Object : null;
     IGMFunction? IGMInstruction.ResolvedFunction => ObjectKind == 3 ? Object : null;
-    VariableType IGMInstruction.ReferenceVarType => (VariableType)(Immediate >> 16);
+    VariableType IGMInstruction.ReferenceVarType => (VariableType)((uint)Immediate >> 16);
     double IGMInstruction.ValueDouble => BitConverter.Int64BitsToDouble(Primitive);
     short IGMInstruction.ValueShort => (short)Primitive;
     int IGMInstruction.ValueInt => (int)Primitive;
@@ -35,7 +35,7 @@ public readonly struct GMInstruction : IGMInstruction
     int IGMInstruction.BranchOffset => Immediate;
     bool IGMInstruction.PopWithContextExit => Immediate == (0xF << 20);
     byte IGMInstruction.DuplicationSize => (byte)Immediate;
-    byte IGMInstruction.DuplicationSize2 => (byte)(Immediate >> 8);
+    byte IGMInstruction.DuplicationSize2 => (byte)((uint)Immediate >> 8);
     int IGMInstruction.ArgumentCount => Immediate;
     int IGMInstruction.PopSwapSize => Immediate; // if array mode then 6 else 5
     int IGMInstruction.AssetReferenceId => Immediate & 0xFF_FF_FF;

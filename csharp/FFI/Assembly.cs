@@ -62,7 +62,7 @@ internal static class Disassembler
             case Opcode.Pop:
                 WriteTypes(sb, instr.Type1, instr.Type2);
                 sb.Append(' ');
-                WriteVar(sb, instr.ResolvedVariable);
+                WriteVar(sb, instr.ResolvedVariable, instr.ReferenceVarType);
                 break;
             case Opcode.Duplicate:
                 sb.Append(" ");
@@ -81,7 +81,10 @@ internal static class Disassembler
                 if (instr.PopWithContextExit)
                     sb.Append(" <drop>");
                 else
+                {
+                    sb.Append(" ");
                     sb.Append(instr.BranchOffset);
+                }
                 break;
             case Opcode.Push:
                 WriteTypes(sb, instr.Type1);
@@ -90,13 +93,16 @@ internal static class Disassembler
                 {
                     case DataType.Boolean:
                     case DataType.Int32:
-                        sb.Append(instr.ValueInt);
                         if (instr.ResolvedFunction is { } f)
                         {
-                            sb.Append(" func: ");
+                            sb.Append("[function]");
                             sb.Append("\x1B[32m");
                             sb.Append(f.Name.Content);
                             sb.Append("\x1B[0m");
+                        }
+                        else
+                        {
+                            sb.Append(instr.ValueInt);
                         }
                         break;
                     case DataType.Double:
@@ -114,7 +120,7 @@ internal static class Disassembler
                         sb.Append("\x1B[0m");
                         break;
                     case DataType.Variable:
-                        WriteVar(sb, instr.ResolvedVariable);
+                        WriteVar(sb, instr.ResolvedVariable, instr.ReferenceVarType);
                         break;
                     default:
                         sb.Append("UNKNOWN DATA TYPE");
@@ -125,7 +131,7 @@ internal static class Disassembler
             case Opcode.PushGlobal:
             case Opcode.PushBuiltin:
                 sb.Append(" ");
-                WriteVar(sb, instr.ResolvedVariable);
+                WriteVar(sb, instr.ResolvedVariable, instr.ReferenceVarType);
                 break;
             case Opcode.PushImmediate:
                 sb.Append(" ");
@@ -136,8 +142,9 @@ internal static class Disassembler
                 sb.Append("\x1B[32m");
                 sb.Append(instr.ResolvedFunction.Name.Content);
                 sb.Append("\x1B[0m");
-                sb.Append(" argc=");
+                sb.Append("(argc=\x1B[1m");
                 sb.Append(instr.ArgumentCount);
+                sb.Append("\x1B[0m)");
                 break;
             case Opcode.CallVariable:
                 sb.Append(" argc=");
@@ -205,7 +212,7 @@ internal static class Disassembler
         sb.Append(instr.ValueShort);
         sb.Append(" String=");
         if (instr.ValueString is { } s)
-            sb.Append(s.Content);
+            sb.Append(Escape(s.Content));
         else sb.Append("null");
     }
 
@@ -264,18 +271,23 @@ internal static class Disassembler
         public override string ToString() => Sb.ToString();
     }
 
-    static void WriteVar(MyStringBuilder sb, IGMVariable var)
+    static void WriteVar(MyStringBuilder sb, IGMVariable var, VariableType refType)
     {
         sb.Append("\x1B[31m");
+        if (refType != VariableType.Normal)
+        {
+            sb.Append("\x1B[93;2m[");
+            sb.Append(refType.ToString().ToLowerInvariant());
+            sb.Append("]\x1B[0m");
+        }
         sb.Append(InstKeyword(var.InstanceType));
         sb.Append("\x1B[0m");
         sb.Append(".");
         sb.Append("\x1B[36m");
         sb.Append(var.Name.Content);
-        sb.Append("\x1B[0m");
-        sb.Append(" (ID=");
+        sb.Append("\x1B[0;2m  # VarID: ");
         sb.Append(var.VariableID);
-        sb.Append(")");
+        sb.Append("\x1B[0m");
     }
 
     static void WriteTypes(MyStringBuilder sb, DataType type1, DataType? type2 = null)
