@@ -12,9 +12,6 @@ fn run() -> libgm::Result<()> {
     let ctx = GameContext::new(&data)?;
 
     for (code_ref, code) in data.codes.element_refs() {
-        if code_ref == libgm::wad::GMRef::new(1) {
-            continue;
-        }
         if !code.is_root() {
             continue;
         }

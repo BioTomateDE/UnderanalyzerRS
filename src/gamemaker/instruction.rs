@@ -96,7 +96,7 @@ impl<'a> UaInstruction<'a> {
             | Instruction::BranchUnless { jump_offset }
             | Instruction::PushWithContext { jump_offset }
             | Instruction::PopWithContext { jump_offset } => {
-                immediate = jump_offset as u32;
+                immediate = (jump_offset * 4) as u32;
             }
             Instruction::PopWithContextExit => {
                 immediate = 0xF << 20;
