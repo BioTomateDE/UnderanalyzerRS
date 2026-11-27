@@ -32,4 +32,3 @@
         <PackageReference Include="UnderminersTeam.Underanalyzer" Version="*" />
     </ItemGroup>
 </Project>
-

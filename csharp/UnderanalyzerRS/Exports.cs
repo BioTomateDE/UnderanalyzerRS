@@ -17,8 +17,12 @@ static class Exports
     {
         try
         {
-            Console.WriteLine(Assembly.Disassembler.Disassemble(*code));
+            //Console.WriteLine(Assembly.Disassembler.Disassemble(*code));
             Underanalyzer.Decompiler.DecompileSettings settings = new();
+            // Underanalyzer.Decompiler.GameSpecific.GameSpecificRegistry registry = new();
+            // using StreamReader reader = new("/home/bio/fork/utmtpr/UndertaleModLib/GameSpecificData/Underanalyzer/undertale.json");
+            // string json = reader.ReadToEnd();
+            // registry.DeserializeFromJson(json);
             DecompileContext decompileContext = new(*gameContext, *code, settings);
             string output = decompileContext.DecompileToString();
             CsString outputRaw = CsString.FromManagedString(output);

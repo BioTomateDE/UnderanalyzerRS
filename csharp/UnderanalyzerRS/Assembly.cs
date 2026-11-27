@@ -64,6 +64,7 @@ internal static class Disassembler
                 WriteVar(sb, instr.ResolvedVariable, instr.ReferenceVarType);
                 break;
             case Opcode.Duplicate:
+                WriteTypes(sb, instr.Type1);
                 sb.Append(" ");
                 sb.Append(instr.DuplicationSize);
                 if (instr.DuplicationSize2 != 0)
