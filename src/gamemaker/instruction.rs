@@ -129,12 +129,16 @@ impl<'a> UaInstruction<'a> {
             Instruction::PushLocal { variable: v }
             | Instruction::PushGlobal { variable: v }
             | Instruction::PushBuiltin { variable: v } => {
+                types = DataType::Variable.encode();
                 immediate = encode_variable_ref(v);
                 let var = data.variables.by_ref(v.variable)?;
                 object = UaObject::try_from_libgm(var, &data.strings)?;
                 object_kind = ObjectKind::Variable;
             }
-            Instruction::PushImmediate { integer } => immediate = integer as u32,
+            Instruction::PushImmediate { integer } => {
+                immediate = integer as u32;
+                types = DataType::Short.encode();
+            }
             Instruction::Call { function, arg_count } => {
                 types = DataType::Int.encode();
                 immediate = arg_count as u32;

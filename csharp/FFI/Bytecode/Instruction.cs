@@ -29,7 +29,7 @@ public readonly struct GMInstruction : IGMInstruction
     IGMFunction? IGMInstruction.ResolvedFunction => ObjectKind == 3 ? Object : null;
     VariableType IGMInstruction.ReferenceVarType => (VariableType)((uint)Immediate >> 16);
     double IGMInstruction.ValueDouble => BitConverter.Int64BitsToDouble(Primitive);
-    short IGMInstruction.ValueShort => (short)Primitive;
+    short IGMInstruction.ValueShort => (short)Immediate;
     int IGMInstruction.ValueInt => (int)Primitive;
     long IGMInstruction.ValueLong => Primitive;
     int IGMInstruction.BranchOffset => Immediate;
