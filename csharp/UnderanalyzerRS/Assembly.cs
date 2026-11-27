@@ -1,6 +1,5 @@
 // Basic disassembler for debugging purposes.
 using System.Reflection;
-using System.Text.Json;
 using Underanalyzer;
 using static Underanalyzer.IGMInstruction;
 

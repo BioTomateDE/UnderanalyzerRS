@@ -18,7 +18,7 @@ static class Exports
         try
         {
             Console.WriteLine(Assembly.Disassembler.Disassemble(*code));
-            DecompileSettings settings = new();
+            Underanalyzer.Decompiler.DecompileSettings settings = new();
             DecompileContext decompileContext = new(*gameContext, *code, settings);
             string output = decompileContext.DecompileToString();
             CsString outputRaw = CsString.FromManagedString(output);

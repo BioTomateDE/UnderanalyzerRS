@@ -11,6 +11,10 @@ fn run() -> libgm::Result<()> {
     let data = libgm::wad::load_file(data_file_path)?;
     let ctx = GameContext::new(&data)?;
 
+    let dir = "/tmp/UNDERANALYZER/";
+    _ = std::fs::remove_dir_all(dir);
+    std::fs::create_dir(dir).unwrap();
+
     for (code_ref, code) in data.codes.element_refs() {
         if !code.is_root() {
             continue;
@@ -27,6 +31,8 @@ fn run() -> libgm::Result<()> {
         };
 
         println!("Decompilation of {name:?}:\n{output}\n");
+
+        std::fs::write(std::path::Path::new(dir).join(name).with_added_extension("gml"), output).unwrap();
     }
 
     Ok(())
